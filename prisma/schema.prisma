@@ -39,7 +39,7 @@ model Todo {
 
 model Tag {
   id      Int       @id @default(autoincrement())
-  tagName String
+  tagName String    @unique
   todoTag TodoTag[]
 }
 
