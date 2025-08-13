@@ -12,10 +12,10 @@ import { TodoService } from './todo.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { ApiTags } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/guards/auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('todo')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard('jwt'))
 @Controller('todo')
 export class TodoController {
   constructor(private todoService: TodoService) {}

@@ -13,11 +13,11 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { AuthGuard } from '../auth/guards/auth.guard';
 import { Roles } from '../auth/decorators/roles.decorators';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('user')
-@UseGuards(AuthGuard, RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles('ADMIN', 'MODERATOR')
 @Controller('user')
 export class UserController {

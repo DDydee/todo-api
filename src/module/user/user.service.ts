@@ -8,10 +8,7 @@ import * as bcrypt from 'bcrypt';
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  async #isUserExist(params: {
-    id?: number;
-    email?: string;
-  }): Promise<Boolean> {
+  async isUserExist(params: { id?: number; email?: string }): Promise<Boolean> {
     const user = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -25,10 +22,6 @@ export class UserService {
   }
 
   async create(userDto: CreateUserDto) {
-    const isExist = await this.#isUserExist({ email: userDto.email });
-
-    if (isExist) throw new Error('user already exist');
-
     try {
       const password_hash = await bcrypt.hash(userDto.password, 10);
       return this.prisma.user.create({
@@ -51,10 +44,6 @@ export class UserService {
   }
 
   async findOne(email: string) {
-    const isExist = await this.#isUserExist({ email });
-
-    if (!isExist) throw Error('user does not exist');
-
     return this.prisma.user.findUnique({
       where: { email },
       select: {
@@ -68,9 +57,9 @@ export class UserService {
   }
 
   async update(id: number, userDto: UpdateUserDto) {
-    const isExist = await this.#isUserExist({ id: id });
+    const isExist = await this.isUserExist({ id: id });
 
-    if (!isExist) return 'user does not exist';
+    if (!isExist) throw new Error('user does not exist');
 
     const userData = { ...userDto };
 
@@ -86,9 +75,9 @@ export class UserService {
   }
 
   async remove(id: number) {
-    const isExist = await this.#isUserExist({ id: id });
+    const isExist = await this.isUserExist({ id: id });
 
-    if (!isExist) throw 'user does not exist';
+    if (!isExist) throw new Error('user does not exist');
 
     return this.prisma.user.delete({
       where: { id },
