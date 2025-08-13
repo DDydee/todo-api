@@ -6,16 +6,19 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { TodoService } from './todo.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '../auth/guards/auth.guard';
 
 @ApiTags('todo')
+@UseGuards(AuthGuard)
 @Controller('todo')
 export class TodoController {
-  constructor(private readonly todoService: TodoService) {}
+  constructor(private todoService: TodoService) {}
 
   @Post()
   create(@Body() createTodoDto: CreateTodoDto) {
@@ -23,13 +26,13 @@ export class TodoController {
   }
 
   @Get()
-  findAll(@Body('userId') userId: string) {
-    return this.todoService.findAll(+userId);
+  findAll(@Body('userId') userId: number) {
+    return this.todoService.findAll(userId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.todoService.findOne(+id, +userId);
+  findOne(@Param('id') id: string, @Body('userId') userId: number) {
+    return this.todoService.findOne(+id, userId);
   }
 
   @Patch(':id')
@@ -38,7 +41,7 @@ export class TodoController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.todoService.remove(+id, +userId);
+  remove(@Param('id') id: string, @Body('userId') userId: number) {
+    return this.todoService.remove(+id, userId);
   }
 }

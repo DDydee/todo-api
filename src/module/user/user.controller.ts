@@ -6,13 +6,19 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { Roles } from '../auth/decorators/roles.decorators';
 
 @ApiTags('user')
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('ADMIN', 'MODERATOR')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -28,8 +34,8 @@ export class UserController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+  findOne(@Body('email') email: string) {
+    return this.userService.findOne(email);
   }
 
   @Patch(':id')

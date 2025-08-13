@@ -27,7 +27,7 @@ export class UserService {
   async create(userDto: CreateUserDto) {
     const isExist = await this.#isUserExist({ email: userDto.email });
 
-    if (isExist) return 'user already exist';
+    if (isExist) throw new Error('user already exist');
 
     try {
       const password_hash = await bcrypt.hash(userDto.password, 10);
@@ -37,7 +37,7 @@ export class UserService {
           email: userDto.email,
           password_hash,
         },
-        select: { username: true, email: true },
+        select: { id: true, username: true, email: true, role: true },
       });
     } catch (error) {
       console.error(error);
@@ -50,14 +50,20 @@ export class UserService {
     });
   }
 
-  async findOne(id: number) {
-    const isExist = await this.#isUserExist({ id: id });
+  async findOne(email: string) {
+    const isExist = await this.#isUserExist({ email });
 
-    if (!isExist) return 'user does not exist';
+    if (!isExist) throw Error('user does not exist');
 
     return this.prisma.user.findUnique({
-      where: { id },
-      select: { username: true, email: true },
+      where: { email },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        password_hash: true,
+        role: true,
+      },
     });
   }
 
@@ -75,18 +81,18 @@ export class UserService {
     return this.prisma.user.update({
       where: { id },
       data: userData,
-      select: { username: true, email: true },
+      select: { username: true, email: true, role: true },
     });
   }
 
   async remove(id: number) {
     const isExist = await this.#isUserExist({ id: id });
 
-    if (!isExist) return 'user does not exist';
+    if (!isExist) throw 'user does not exist';
 
     return this.prisma.user.delete({
       where: { id },
-      select: { username: true, email: true },
+      select: { username: true, email: true, role: true },
     });
   }
 }
