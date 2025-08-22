@@ -3,7 +3,6 @@ import {
   IsDateString,
   IsEnum,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   MinLength,
@@ -28,14 +27,6 @@ export class CreateTodoDto {
   @IsOptional()
   @IsString()
   description?: string;
-
-  @ApiProperty({
-    description: 'ID of the user who owns this task.',
-    example: 42,
-  })
-  @IsNotEmpty({ message: 'userId is empty' })
-  @IsNumber()
-  userId: number;
 
   @ApiPropertyOptional({
     description: 'Current status of the task.',

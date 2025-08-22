@@ -13,14 +13,14 @@ export class TodoService {
     return !!todo;
   }
 
-  async create(todoDto: CreateTodoDto) {
+  async create(userId, todoDto: CreateTodoDto) {
     const todo = await this.prisma.todo.create({
       data: {
         title: todoDto.title,
         description: todoDto.description,
         status: todoDto.status,
         deadline: todoDto.deadline,
-        userId: todoDto.userId,
+        userId,
       },
     });
 
@@ -65,7 +65,7 @@ export class TodoService {
     });
   }
 
-  async update(id: number, todoDto: UpdateTodoDto) {
+  async update(id: number, userId, todoDto: UpdateTodoDto) {
     const isExist = await this.#isTodoExist(id);
     if (!isExist) {
       return 'Todo is not exist';
@@ -74,7 +74,7 @@ export class TodoService {
     const todo = await this.prisma.todo.update({
       where: {
         id,
-        userId: todoDto.userId,
+        userId,
       },
       data: {
         title: todoDto.title,
