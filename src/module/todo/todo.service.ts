@@ -1,12 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { todo } from 'node:test';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class TodoService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private prisma: PrismaService
+  ) {}
 
   async #isTodoExist(id: number): Promise<Boolean> {
     const todo = await this.prisma.todo.findFirst({ where: { id } });
@@ -41,7 +45,14 @@ export class TodoService {
   }
 
   async findAll(userId: number) {
-    return this.prisma.todo.findMany({ where: { userId } });
+    const cacheTodo = await this.cacheManager.get<string>(String(userId));
+    if (cacheTodo) {
+      console.log(cacheTodo);
+      return JSON.parse(cacheTodo);
+    }
+    const todos = await this.prisma.todo.findMany({ where: { userId } });
+    await this.cacheManager.set(String(userId), JSON.stringify(todos));
+    return todos;
   }
 
   async findOne(id: number, userId: number) {
