@@ -47,11 +47,30 @@ CREATE TABLE "public"."TodoTag" (
     CONSTRAINT "TodoTag_pkey" PRIMARY KEY ("todoId","tagId")
 );
 
+-- CreateTable
+CREATE TABLE "public"."RefreshToken" (
+    "id" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RefreshToken_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_username_key" ON "public"."User"("username");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Tag_tagName_key" ON "public"."Tag"("tagName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RefreshToken_token_key" ON "public"."RefreshToken"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RefreshToken_userId_key" ON "public"."RefreshToken"("userId");
 
 -- AddForeignKey
 ALTER TABLE "public"."Todo" ADD CONSTRAINT "Todo_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -61,3 +80,6 @@ ALTER TABLE "public"."TodoTag" ADD CONSTRAINT "TodoTag_todoId_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "public"."TodoTag" ADD CONSTRAINT "TodoTag_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "public"."Tag"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."RefreshToken" ADD CONSTRAINT "RefreshToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

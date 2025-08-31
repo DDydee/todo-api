@@ -13,14 +13,15 @@ import Redis from 'ioredis';
   imports: [
     PrismaModule,
     CacheModule.registerAsync({
+      isGlobal: true,
       useFactory: async () => {
-        const redis = new Redis(6377);
+        const redis = new Redis(6370);
         try {
           await redis.ping();
           console.log('Successfully connected to Redis');
 
           const keyv = new Keyv({
-            store: new KeyvRedis('redis://localhost:6377'),
+            store: new KeyvRedis('redis://localhost:6370'),
           });
 
           return [keyv];

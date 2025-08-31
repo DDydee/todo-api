@@ -63,13 +63,18 @@ export class UserService {
 
     const userData = { ...userDto };
 
+    let password_hash: string | undefined;
     if (userDto?.password) {
-      userData.password = await bcrypt.hash(userDto.password, 10);
+      password_hash = await bcrypt.hash(userDto.password, 10);
     }
 
     return this.prisma.user.update({
       where: { id },
-      data: userData,
+      data: {
+        username: userData.username,
+        email: userData.email,
+        password_hash: password_hash,
+      },
       select: { username: true, email: true, role: true },
     });
   }
