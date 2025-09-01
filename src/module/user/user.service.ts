@@ -8,7 +8,7 @@ import * as bcrypt from 'bcrypt';
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  async isUserExist(params: { id?: number; email?: string }): Promise<Boolean> {
+  async isUserExist(params: { id?: number; email?: string }) {
     const user = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -16,9 +16,8 @@ export class UserService {
           params.email ? { email: params.email } : undefined,
         ].filter(Boolean) as any,
       },
-      select: { id: true },
     });
-    return !!user;
+    return user;
   }
 
   async create(userDto: CreateUserDto) {
@@ -43,9 +42,9 @@ export class UserService {
     });
   }
 
-  async findOne(email: string) {
+  async findOne(id: number) {
     return this.prisma.user.findUnique({
-      where: { email },
+      where: { id },
       select: {
         id: true,
         username: true,

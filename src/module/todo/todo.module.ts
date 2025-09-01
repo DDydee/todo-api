@@ -13,7 +13,6 @@ import Redis from 'ioredis';
   imports: [
     PrismaModule,
     CacheModule.registerAsync({
-      isGlobal: true,
       useFactory: async () => {
         const redis = new Redis(6370);
         try {
@@ -24,7 +23,7 @@ import Redis from 'ioredis';
             store: new KeyvRedis('redis://localhost:6370'),
           });
 
-          return [keyv];
+          return keyv;
         } catch (error) {
           console.error(`Failed to connect to Redis: ${error}`);
           throw new Error('Redis connection failed');

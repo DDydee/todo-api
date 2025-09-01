@@ -103,7 +103,7 @@ describe('UserService', () => {
   });
 
   describe('Find user', () => {
-    it('Shoult return a user by email', async () => {
+    it('Shoult return a user by id', async () => {
       const result = {
         id: 1,
         username: 'test',
@@ -112,10 +112,10 @@ describe('UserService', () => {
         role: 'USER',
       };
       prismaMock.user.findUnique.mockResolvedValue(result);
-      const findedUser = await userService.findOne('test@test.com');
+      const findedUser = await userService.findOne(result.id);
 
       expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-        where: { email: 'test@test.com' },
+        where: { id: result.id },
         select: {
           id: true,
           username: true,
@@ -129,7 +129,7 @@ describe('UserService', () => {
 
     it('Should return null', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
-      const unfindendUser = await userService.findOne('test@test.com');
+      const unfindendUser = await userService.findOne(1);
       expect(unfindendUser).toBe(null);
     });
   });
@@ -149,7 +149,9 @@ describe('UserService', () => {
     it('Should return updated user', async () => {
       const hashedPassword = 'hash123testing';
 
-      jest.spyOn(userService, 'isUserExist').mockResolvedValue(true);
+      jest
+        .spyOn(userService, 'isUserExist')
+        .mockResolvedValue(expect.any(Object));
       (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
 
       prismaMock.user.update.mockResolvedValue(result);
@@ -170,8 +172,8 @@ describe('UserService', () => {
     });
 
     it('Should return error after failed isUserExist', async () => {
-      jest.spyOn(userService, 'isUserExist').mockResolvedValue(false);
-      await expect(userService.update(1, updateUser)).rejects.toThrow(
+      jest.spyOn(userService, 'isUserExist').mockResolvedValue(null);
+      await expect(userService.update(0, updateUser)).rejects.toThrow(
         'user does not exist'
       );
     });
@@ -184,7 +186,9 @@ describe('UserService', () => {
       role: 'USER',
     };
     it('Should return a removed user', async () => {
-      jest.spyOn(userService, 'isUserExist').mockResolvedValue(true);
+      jest
+        .spyOn(userService, 'isUserExist')
+        .mockResolvedValue(expect.any(Object));
       prismaMock.user.delete.mockResolvedValue(result);
       const deletedUser = await userService.remove(1);
       expect(prismaMock.user.delete).toHaveBeenCalledWith({

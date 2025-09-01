@@ -35,8 +35,8 @@ export class UserController {
   }
 
   @Get(':id')
-  async findOne(@Body('email') email: string) {
-    return await this.userService.findOne(email);
+  async findOne(@Param('id') id: string) {
+    return await this.userService.findOne(+id);
   }
 
   @Patch(':id')

@@ -4,16 +4,13 @@ import { AppModule } from 'src/app.module';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthService } from 'src/module/auth/auth.service';
 import { Role } from '@prisma/client';
-import Redis from 'ioredis';
 import request from 'supertest';
-
 describe('UserController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let authService: AuthService;
   let adminToken: string;
   let userToken: string;
-  // let redis: Redis;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,7 +22,6 @@ describe('UserController (e2e)', () => {
 
     prisma = module.get(PrismaService);
     authService = module.get(AuthService);
-    // redis = module.get(Redis);
 
     const admin = await prisma.user.create({
       data: {
@@ -59,7 +55,9 @@ describe('UserController (e2e)', () => {
         password: 'hashedPassword',
       })
     ).access_token;
+  });
 
+  beforeEach(async () => {
     await prisma.user.deleteMany({
       where: {
         email: { notIn: ['admin@test.com', 'user@test.com'] },
@@ -68,20 +66,18 @@ describe('UserController (e2e)', () => {
   });
 
   afterAll(async () => {
-    // if (redis) {
-    //   await redis.off();
-    // }
     await prisma.user.deleteMany();
+    // await prisma.$disconnect();
     await app.close();
   });
 
-  describe('GET /user', () => {
+  describe('GET', () => {
     const newUser = {
       username: 'user',
       email: 'user-test@test.com',
       password: 'hashPassowrd',
     };
-    it('should return all users', async () => {
+    it('/user should return all users', async () => {
       const createdUser = await request(app.getHttpServer())
         .post('/user')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -99,7 +95,6 @@ describe('UserController (e2e)', () => {
         .get('/user')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-
       expect(users.body).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ email: 'user-test@test.com' }),
@@ -107,16 +102,114 @@ describe('UserController (e2e)', () => {
       );
     });
 
-    it('should return 401 error', async () => {
-      const newUser = {
-        username: 'user',
-        email: 'user-test@test.com',
-        password: 'hashPassowrd',
-      };
+    it('/user should return 403 error', async () => {
+      const createdUser = await request(app.getHttpServer())
+        .get('/user')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(403);
+    });
+
+    it('/user/:id should return a user by id', async () => {
       const createdUser = await request(app.getHttpServer())
         .post('/user')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(newUser)
-        .expect(401);
+        .expect(201);
+
+      const user = await request(app.getHttpServer())
+        .get(`/user/${createdUser.body.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(user.body).toEqual({
+        id: expect.any(Number),
+        username: 'user',
+        email: 'user-test@test.com',
+        password_hash: expect.any(String),
+        role: expect.stringMatching(/USER|ADMIN/),
+      });
+    });
+  });
+
+  describe('POST', () => {
+    const newUser = {
+      username: 'user',
+      email: 'user-test@test.com',
+      password: 'hashPassowrd',
+    };
+    it('/user should create user', async () => {
+      const createdUser = await request(app.getHttpServer())
+        .post('/user')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(newUser)
+        .expect(201);
+      expect(createdUser.body).toMatchObject({
+        id: expect.any(Number),
+        username: 'user',
+        email: 'user-test@test.com',
+        role: Role.USER,
+      });
+    });
+  });
+
+  describe('PATCH', () => {
+    const newUser = {
+      username: 'user',
+      email: 'user-test@test.com',
+      password: 'hashPassowrd',
+    };
+
+    it('/user/:id should update user by id', async () => {
+      const createdUser = await request(app.getHttpServer())
+        .post('/user')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(newUser)
+        .expect(201);
+      expect(createdUser.body).toMatchObject({
+        id: expect.any(Number),
+        username: 'user',
+        email: 'user-test@test.com',
+        role: Role.USER,
+      });
+
+      const updatedUser = await request(app.getHttpServer())
+        .patch(`/user/${createdUser.body.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ username: 'updated-user' })
+        .expect(200);
+      expect(updatedUser.body).toEqual(
+        expect.objectContaining({ username: 'updated-user' })
+      );
+    });
+  });
+
+  describe('DELETE', () => {
+    const newUser = {
+      username: 'user',
+      email: 'user-test@test.com',
+      password: 'hashPassowrd',
+    };
+    it('/user/:id should delete user by id', async () => {
+      const createdUser = await request(app.getHttpServer())
+        .post('/user')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(newUser)
+        .expect(201);
+      expect(createdUser.body).toMatchObject({
+        id: expect.any(Number),
+        username: 'user',
+        email: 'user-test@test.com',
+        role: Role.USER,
+      });
+
+      const deletedUser = await request(app.getHttpServer())
+        .delete(`/user/${createdUser.body.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(deletedUser.body).toEqual({
+        username: newUser.username,
+        email: newUser.email,
+        role: expect.stringMatching(/USER|ADMIN/),
+      });
     });
   });
 });
