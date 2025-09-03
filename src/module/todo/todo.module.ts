@@ -14,13 +14,13 @@ import Redis from 'ioredis';
     PrismaModule,
     CacheModule.registerAsync({
       useFactory: async () => {
-        const redis = new Redis(6370);
+        const redis = new Redis(process.env.REDIS_URL || 'redis://todo-redis:6379');
         try {
           await redis.ping();
           console.log('Successfully connected to Redis');
 
           const keyv = new Keyv({
-            store: new KeyvRedis('redis://localhost:6370'),
+            store: new KeyvRedis(process.env.REDIS_URL),
           });
 
           return keyv;

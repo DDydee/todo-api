@@ -19,7 +19,7 @@ import { User } from '@prisma/client';
 
 @ApiTags('user')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles('ADMIN', 'MODERATOR')
+@Roles('ADMIN')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
