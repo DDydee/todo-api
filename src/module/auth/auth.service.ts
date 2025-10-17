@@ -68,19 +68,17 @@ export class AuthService {
   }
 
   async signIn(signInDto: SignInDto) {
-    const isUserExist = await this.userService.isUserExist({
+    const user = await this.userService.isUserExist({
       email: signInDto.email,
     });
 
-    if (!isUserExist) {
+    if (!user) {
       throw new UnauthorizedException('User does not exist');
     }
 
-    const user = await this.userService.findOne(signInDto.email);
-
     const password_hash = await bcrypt.compare(
       signInDto.password,
-      user!.password_hash
+      user.password_hash
     );
 
     if (!password_hash) {

@@ -13,7 +13,6 @@ async function bootstrap() {
   app.use(cookieParser());
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(new ValidationPipe());
-
   const config = new DocumentBuilder()
     .setTitle('Todo API')
     .setDescription('Example API with validation and Swagger')
