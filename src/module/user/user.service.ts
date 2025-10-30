@@ -1,29 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { User } from './interfaces/users.interface';
 
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  async isUserExist(params: { id?: number; email?: string }) {
+  async findUserByEmail(email: string) {
     const user = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          params.id ? { id: params.id } : undefined,
-          params.email ? { email: params.email } : undefined,
-        ].filter(Boolean) as any,
+        email,
       },
     });
     return user;
   }
 
-  async create(userDto: CreateUserDto) {
+  async create(userDto: CreateUserDto): Promise<User> {
     try {
       const password_hash = await bcrypt.hash(userDto.password, 10);
-      return this.prisma.user.create({
+      const createdUser = await this.prisma.user.create({
         data: {
           username: userDto.username,
           email: userDto.email,
@@ -31,8 +29,9 @@ export class UserService {
         },
         select: { id: true, username: true, email: true, role: true },
       });
-    } catch (error) {
-      console.error(error);
+      return createdUser;
+    } catch {
+      throw new InternalServerErrorException('Failed to create user');
     }
   }
 
@@ -56,7 +55,7 @@ export class UserService {
   }
 
   async update(id: number, userDto: UpdateUserDto) {
-    const isExist = await this.isUserExist({ id: id });
+    const isExist = await this.findOne(id);
 
     if (!isExist) throw new Error('user does not exist');
 
@@ -79,7 +78,7 @@ export class UserService {
   }
 
   async remove(id: number) {
-    const isExist = await this.isUserExist({ id: id });
+    const isExist = await this.findOne(id);
 
     if (!isExist) throw new Error('user does not exist');
 

@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from '../user/user.service';
@@ -9,40 +10,49 @@ import { JwtService } from '@nestjs/jwt';
 import { SignInDto } from './dto/signIn.dto';
 import { SignUpDto } from './dto/signUp.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import type { Payload } from './interfaces/auth.inteface';
+import { User } from '../user/interfaces/users.interface';
+import { ConfigService } from '@nestjs/config';
+import type { Env } from 'config/dev.config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
-    private prisma: PrismaService
+    private prisma: PrismaService,
+    private configService: ConfigService<Env>
   ) {}
 
-  async refreshToken(user: any, token: string) {
-    const findedUser = await this.userService.findOne(user.email);
+  async refreshToken(userPayload: Payload, token: string) {
+    const findedUser = await this.userService.findOne(userPayload.sub);
+    if (!findedUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
     const oldToken = await this.prisma.refreshToken.findUnique({
-      where: { userId: user.sub },
+      where: { userId: userPayload.sub },
       select: { token: true },
     });
-    if (!findedUser || !(await bcrypt.compare(token, oldToken!.token))) {
+    if (!oldToken || !(await bcrypt.compare(token, oldToken.token))) {
       throw new UnauthorizedException();
     }
 
     return await this.generateToken(findedUser);
   }
 
-  async generateToken(user: any) {
+  async generateToken(user: User) {
     const payload = {
-      sub: user?.id,
-      email: user?.email,
-      role: user?.role,
+      sub: user.id,
+      email: user.email,
+      role: user.role,
     };
     const access_token = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_KEY,
+      secret: this.configService.get('JWT_KEY'),
       expiresIn: '15m',
     });
     const refresh_token = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_REFRESH_KEY,
+      secret: this.configService.get('JWT_REFRESH_KEY'),
       expiresIn: '7d',
     });
 
@@ -68,9 +78,7 @@ export class AuthService {
   }
 
   async signIn(signInDto: SignInDto) {
-    const user = await this.userService.isUserExist({
-      email: signInDto.email,
-    });
+    const user = await this.userService.findUserByEmail(signInDto.email);
 
     if (!user) {
       throw new UnauthorizedException('User does not exist');
@@ -89,16 +97,33 @@ export class AuthService {
   }
 
   async signUp(signUpDto: SignUpDto) {
-    const isUserExist = await this.userService.isUserExist({
-      email: signUpDto.email,
-    });
+    const isUserExist = await this.userService.findUserByEmail(signUpDto.email);
 
     if (isUserExist) {
       throw new ConflictException('User is already exist');
     }
 
-    const user = await this.userService.create(signUpDto);
-
+    let user: User;
+    try {
+      user = await this.userService.create(signUpDto);
+    } catch {
+      throw new InternalServerErrorException('Failed to create user');
+    }
     return await this.generateToken(user);
+  }
+
+  async signOut(refreshToken: string) {
+    const jwtRefreshKey = this.configService.get<string>('JWT_REFRESH_KEY');
+
+    try {
+      const payload: Payload = await this.jwtService.verify(refreshToken, {
+        secret: jwtRefreshKey,
+      });
+      await this.prisma.refreshToken.deleteMany({
+        where: { userId: payload.sub },
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
   }
 }

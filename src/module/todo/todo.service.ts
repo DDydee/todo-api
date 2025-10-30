@@ -12,12 +12,12 @@ export class TodoService {
     private prisma: PrismaService
   ) {}
 
-  async #isTodoExist(id: number): Promise<Boolean> {
+  async #isTodoExist(id: number): Promise<boolean> {
     const todo = await this.prisma.todo.findFirst({ where: { id } });
     return !!todo;
   }
 
-  async create(userId, todoDto: CreateTodoDto) {
+  async create(userId: number, todoDto: CreateTodoDto) {
     const todo = await this.prisma.todo.create({
       data: {
         title: todoDto.title,
@@ -45,10 +45,12 @@ export class TodoService {
   }
 
   async findAll(userId: number) {
-    const cacheTodo = await this.cacheManager.get<string>(String(userId));
-    if (cacheTodo) {
-      console.log(cacheTodo);
-      return JSON.parse(cacheTodo);
+    const cacheTodo: string | undefined = await this.cacheManager.get(
+      String(userId)
+    );
+    if (cacheTodo !== undefined) {
+      const parsedTodo = JSON.parse(cacheTodo);
+      return parsedTodo;
     }
     const todos = await this.prisma.todo.findMany({ where: { userId } });
     await this.cacheManager.set(String(userId), JSON.stringify(todos));
@@ -76,7 +78,7 @@ export class TodoService {
     });
   }
 
-  async update(id: number, userId, todoDto: UpdateTodoDto) {
+  async update(id: number, userId: number, todoDto: UpdateTodoDto) {
     const isExist = await this.#isTodoExist(id);
     if (!isExist) {
       return 'Todo is not exist';

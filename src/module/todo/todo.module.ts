@@ -6,6 +6,8 @@ import { CacheModule } from '@nestjs/cache-manager';
 import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 import Redis from 'ioredis';
+import type { Env } from '../../../config/dev.config';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   controllers: [TodoController],
@@ -13,14 +15,14 @@ import Redis from 'ioredis';
   imports: [
     PrismaModule,
     CacheModule.registerAsync({
-      useFactory: async () => {
-        const redis = new Redis(process.env.REDIS_URL || 'redis://todo-redis:6379');
+      useFactory: async (config: ConfigService<Env>) => {
+        const redis = new Redis(config.getOrThrow<string>('REDIS_URL'));
         try {
           await redis.ping();
           console.log('Successfully connected to Redis');
 
           const keyv = new Keyv({
-            store: new KeyvRedis(process.env.REDIS_URL),
+            store: new KeyvRedis(config.getOrThrow<string>('REDIS_URL')),
           });
 
           return keyv;
@@ -29,6 +31,7 @@ import Redis from 'ioredis';
           throw new Error('Redis connection failed');
         }
       },
+      inject: [ConfigService],
     }),
   ],
 })
