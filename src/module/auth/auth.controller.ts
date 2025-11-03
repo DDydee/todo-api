@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Inject,
   Post,
   Req,
   Res,
@@ -19,16 +20,20 @@ import type {
 } from './interfaces/auth.inteface';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../../config/dev.config';
+import { Public } from './decorators/token.decorators';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private jwtService: JwtService,
-    private configService: ConfigService<Env>
+    private configService: ConfigService<Env>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {}
 
   @Post('sign-in')
+  @Public()
   async signIn(
     @Body() signInDto: SignInDto,
     @Res({ passthrough: true }) res: Response
@@ -41,6 +46,7 @@ export class AuthController {
   }
 
   @Post('sign-up')
+  @Public()
   async signUp(
     @Body() signUpDto: SignUpDto,
     @Res({ passthrough: true }) res: Response
@@ -57,9 +63,17 @@ export class AuthController {
     @Req() req: CookieRequest,
     @Res({ passthrough: true }) res: Response
   ) {
+    const accessToken = req.headers.authorization?.split(' ')[1];
+    if (!accessToken) throw new UnauthorizedException('Token is empty');
+
+    const payload: Payload = this.jwtService.decode(accessToken);
     const refreshToken = req.cookies?.['refresh_token'];
     if (!refreshToken) throw new UnauthorizedException('REFRESH_INVALID');
+
     await this.authService.signOut(refreshToken);
+    const ttl = payload.exp * 1000 - Date.now();
+    await this.cacheManager.set(`${accessToken}`, true, ttl);
+
     res.clearCookie('refresh_token');
     res.status(200).json({
       message: 'success',

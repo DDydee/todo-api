@@ -1,11 +1,16 @@
+import { Request } from 'express';
+
 export interface CookieRequest extends Request {
   cookies: { [key: string]: string | undefined };
+  user: Payload;
 }
 
 export interface Payload {
   sub: number;
   email: string;
   role: string;
+  iat: number;
+  exp: number;
 }
 
 export interface AuthResponse {

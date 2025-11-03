@@ -2,8 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { Todo } from '@prisma/client';
 
 @Injectable()
 export class TodoService {
@@ -41,19 +41,26 @@ export class TodoService {
         });
       }
     }
+
+    await this.clearTodoCache(userId);
     return todo;
   }
 
+  async clearTodoCache(userId: number) {
+    await this.cacheManager.del(String(userId));
+  }
+
   async findAll(userId: number) {
-    const cacheTodo: string | undefined = await this.cacheManager.get(
-      String(userId)
-    );
+    const cacheTodo = await this.cacheManager.get<Todo[]>(String(userId));
     if (cacheTodo !== undefined) {
-      const parsedTodo = JSON.parse(cacheTodo);
-      return parsedTodo;
+      return cacheTodo;
     }
     const todos = await this.prisma.todo.findMany({ where: { userId } });
-    await this.cacheManager.set(String(userId), JSON.stringify(todos));
+    await this.cacheManager.set(
+      String(userId),
+      JSON.stringify(todos),
+      1000 * 60 * 5
+    );
     return todos;
   }
 
@@ -97,6 +104,8 @@ export class TodoService {
       },
     });
 
+    await this.clearTodoCache(userId);
+
     if (todoDto.todoTag?.length) {
       for (const tagName of todoDto.todoTag) {
         const tag = await this.prisma.tag.upsert({
@@ -123,6 +132,8 @@ export class TodoService {
     if (!isExist) {
       return 'Todo is not exist';
     }
+
+    await this.clearTodoCache(userId);
 
     return this.prisma.todo.delete({ where: { id, userId } });
   }

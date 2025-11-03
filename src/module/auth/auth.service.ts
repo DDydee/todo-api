@@ -119,11 +119,20 @@ export class AuthService {
       const payload: Payload = await this.jwtService.verify(refreshToken, {
         secret: jwtRefreshKey,
       });
+      const date = Math.floor(Date.now() / 1000);
+      if (payload.exp < date) {
+        throw new Error('Date is expired');
+      }
+
       await this.prisma.refreshToken.deleteMany({
         where: { userId: payload.sub },
       });
-    } catch {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Invalid or expired refresh token';
+
+      console.error(message);
+      throw new UnauthorizedException(message);
     }
   }
 }

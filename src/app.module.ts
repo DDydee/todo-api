@@ -5,6 +5,10 @@ import { TodoModule } from './module/todo/todo.module';
 import { AuthModule } from './module/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { configSchema } from '../config/dev.config';
+import { CacheModule } from '@nestjs/cache-manager';
+import KeyvRedis from '@keyv/redis';
+import { ConfigService } from '@nestjs/config';
+import { Env } from 'config/dev.config';
 
 @Module({
   imports: [
@@ -12,6 +16,19 @@ import { configSchema } from '../config/dev.config';
     UserModule,
     TodoModule,
     AuthModule,
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: (config: ConfigService<Env>) => {
+        const redisCache = new KeyvRedis(
+          config.getOrThrow<string>('REDIS_URL')
+        );
+        console.log('Reddis is connected');
+        return {
+          stores: [redisCache],
+        };
+      },
+      inject: [ConfigService],
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       validate: (config) => {
