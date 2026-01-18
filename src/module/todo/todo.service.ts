@@ -3,7 +3,7 @@ import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
-import { Todo } from '@prisma/client';
+import { TodoUserTag } from './inteface/TodoInterface';
 
 @Injectable()
 export class TodoService {
@@ -51,38 +51,49 @@ export class TodoService {
   }
 
   async findAll(userId: number) {
-    const cacheTodo = await this.cacheManager.get<Todo[]>(String(userId));
+    const cacheTodo = await this.cacheManager.get<TodoUserTag[]>(
+      String(userId)
+    );
     if (cacheTodo !== undefined) {
       return cacheTodo;
     }
-    const todos = await this.prisma.todo.findMany({ where: { userId } });
+    const todos = await this.prisma.todo.findMany({
+      where: { userId },
+      include: {
+        todoTag: {
+          select: { tag: { select: { tagName: true } } },
+        },
+      },
+    });
+    const formattedTodo = todos.map((todo) => this.#formattedTodo(todo));
     await this.cacheManager.set(
       String(userId),
       JSON.stringify(todos),
       1000 * 60 * 5
     );
-    return todos;
+    return formattedTodo;
   }
 
   async findOne(id: number, userId: number) {
-    const isExist = await this.#isTodoExist(id);
-    if (!isExist) {
-      return 'Todo is not exist';
-    }
-
-    return this.prisma.todo.findUnique({
+    const todo = await this.prisma.todo.findUnique({
       where: { id, userId },
-      select: {
-        title: true,
-        description: true,
-        status: true,
-        deadline: true,
+      include: {
         user: { select: { username: true } },
         todoTag: {
           select: { tag: { select: { tagName: true } } },
         },
       },
     });
+    if (!todo) return 'Todo is not exist';
+    return this.#formattedTodo(todo);
+  }
+
+  #formattedTodo(todo: TodoUserTag) {
+    const result = {
+      todoTag: todo.todoTag.map((tt) => tt.tag.tagName),
+    };
+
+    return result;
   }
 
   async update(id: number, userId: number, todoDto: UpdateTodoDto) {
