@@ -4,6 +4,7 @@ import { UpdateTodoDto } from './dto/update-todo.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { TodoUserTag } from './inteface/TodoInterface';
+import { Status } from '@prisma/client';
 
 @Injectable()
 export class TodoService {
@@ -47,31 +48,63 @@ export class TodoService {
   }
 
   async clearTodoCache(userId: number) {
-    await this.cacheManager.del(String(userId));
+    await this.cacheManager.clear();
   }
 
-  async findAll(userId: number) {
-    const cacheTodo = await this.cacheManager.get<TodoUserTag[]>(
-      String(userId)
+  async findAll(
+    userId: number,
+    tagsArr: string[] | undefined,
+    status: Status | undefined = undefined,
+    sort: 'desc' | 'asc' = 'desc',
+    page: number | undefined
+  ) {
+    const cacheTodo = await this.cacheManager.get<TodoUserTag>(
+      this.genKeyTodoCache(userId, tagsArr, status, sort, page)
     );
     if (cacheTodo !== undefined) {
       return cacheTodo;
     }
     const todos = await this.prisma.todo.findMany({
-      where: { userId },
+      where: {
+        userId,
+        todoTag: { some: { tag: { tagName: { in: tagsArr } } } },
+        status,
+      },
+      orderBy: { createdAt: sort },
       include: {
         todoTag: {
           select: { tag: { select: { tagName: true } } },
         },
       },
+      skip: page && page > 0 ? --page * 10 : undefined,
+      take: 10,
     });
-    const formattedTodo = todos.map((todo) => this.#formattedTodo(todo));
+    const formattedTodo = todos.map((todo) => this.#formattedTags(todo));
     await this.cacheManager.set(
-      String(userId),
+      this.genKeyTodoCache(userId, tagsArr, status, sort, page),
       JSON.stringify(todos),
-      1000 * 60 * 5
+      1000 * 60 * 3
     );
     return formattedTodo;
+  }
+
+  genKeyTodoCache(
+    userId: number,
+    tags: string[] | undefined,
+    status: Status | undefined,
+    sort: 'desc' | 'asc',
+    page: number | undefined
+  ) {
+    const pageStr = page ? String(page) : '1';
+    const sortStr = sort;
+    const statusStr = status ?? 'all';
+    let tagsPart = 'noTags';
+    if (tags && tags.length > 0) {
+      tagsPart = tags.join(',');
+    }
+
+    const keyString = `todo:user:${userId}:list:t:${tagsPart}:s:${statusStr}:sort:${sortStr}:p:${pageStr}`;
+    return keyString;
   }
 
   async findOne(id: number, userId: number) {
@@ -84,22 +117,21 @@ export class TodoService {
         },
       },
     });
-    if (!todo) return 'Todo is not exist';
-    return this.#formattedTodo(todo);
+    if (!todo) return { msg: 'Todo is not exist' };
+    return this.#formattedTags(todo);
   }
 
-  #formattedTodo(todo: TodoUserTag) {
-    const result = {
+  #formattedTags(todo: TodoUserTag) {
+    return {
+      ...todo,
       todoTag: todo.todoTag.map((tt) => tt.tag.tagName),
     };
-
-    return result;
   }
 
   async update(id: number, userId: number, todoDto: UpdateTodoDto) {
     const isExist = await this.#isTodoExist(id);
     if (!isExist) {
-      return 'Todo is not exist';
+      return { msg: 'Todo is not exist' };
     }
 
     const todo = await this.prisma.todo.update({
@@ -141,7 +173,7 @@ export class TodoService {
   async remove(id: number, userId: number) {
     const isExist = await this.#isTodoExist(id);
     if (!isExist) {
-      return 'Todo is not exist';
+      return { msg: 'Todo is not exist' };
     }
 
     await this.clearTodoCache(userId);

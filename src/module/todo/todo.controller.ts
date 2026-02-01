@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { TodoService } from './todo.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
@@ -15,6 +16,7 @@ import { UpdateTodoDto } from './dto/update-todo.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
+import { Status } from '@prisma/client';
 
 type RequestWithUser = Request & { user: { id: string } };
 
@@ -30,8 +32,15 @@ export class TodoController {
   }
 
   @Get()
-  findAll(@Req() req: RequestWithUser) {
-    return this.todoService.findAll(+req.user.id);
+  findAll(
+    @Req() req: RequestWithUser,
+    @Query('tags') tags: string,
+    @Query('status') status: Status,
+    @Query('page') page: string,
+    @Query('sort') sort: 'desc' | 'asc'
+  ) {
+    const arrTags = tags ? tags.split(',') : undefined;
+    return this.todoService.findAll(+req.user.id, arrTags, status, sort, +page);
   }
 
   @Get(':id')
