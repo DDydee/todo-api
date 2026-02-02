@@ -5,24 +5,23 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider        = "prisma-client-js"
-  output          = "../generated/prisma"
-  engineType      = "client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = "postgresql://todo-admin:todo-password@localhost:32769/todo"
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  username      String   @unique
-  email         String   @unique
+  id            Int           @id @default(autoincrement())
+  username      String        @unique
+  email         String        @unique
   password_hash String
-  role          Role     @default(USER)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  refreshToken RefreshToken?
+  role          Role          @default(USER)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  refreshToken  RefreshToken?
   todo          Todo[]
 }
 

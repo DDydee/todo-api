@@ -5,6 +5,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { TodoUserTag } from './inteface/TodoInterface';
 import { Status } from '@prisma/client';
+import KeyvRedis, { RedisClientType } from '@keyv/redis';
+import { KeyvStoreAdapter } from 'keyv';
 
 @Injectable()
 export class TodoService {
@@ -48,7 +50,24 @@ export class TodoService {
   }
 
   async clearTodoCache(userId: number) {
-    await this.cacheManager.clear();
+    const store = this.cacheManager.stores[0].store as KeyvStoreAdapter;
+    if (!(store instanceof KeyvRedis)) {
+      console.warn('Redis cache unavailable, skipping invalidation');
+      return;
+    }
+    const redis = store.client as RedisClientType;
+    try {
+      for await (const key of redis.scanIterator({
+        MATCH: `todo:user:${userId}:list:*`,
+        COUNT: 100,
+      })) {
+        await redis.unlink(key);
+      }
+      return;
+    } catch (err) {
+      console.error(`Failed to invalidate cache for user - ${userId}:`, err);
+      return;
+    }
   }
 
   async findAll(
