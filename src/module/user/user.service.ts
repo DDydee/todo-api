@@ -42,7 +42,7 @@ export class UserService {
   }
 
   async findOne(id: number) {
-    return this.prisma.user.findUnique({
+    return await this.prisma.user.findUnique({
       where: { id },
       select: {
         id: true,
@@ -59,19 +59,16 @@ export class UserService {
 
     if (!isExist) throw new Error('user does not exist');
 
-    const userData = { ...userDto };
-
-    let password_hash: string | undefined;
     if (userDto?.password) {
-      password_hash = await bcrypt.hash(userDto.password, 10);
+      userDto.password = await bcrypt.hash(userDto.password, 10);
     }
 
-    return this.prisma.user.update({
+    return await this.prisma.user.update({
       where: { id },
       data: {
-        username: userData.username,
-        email: userData.email,
-        password_hash: password_hash,
+        username: userDto.username,
+        email: userDto.email,
+        password_hash: userDto.password,
       },
       select: { username: true, email: true, role: true },
     });
@@ -82,7 +79,7 @@ export class UserService {
 
     if (!isExist) throw new Error('user does not exist');
 
-    return this.prisma.user.delete({
+    return await this.prisma.user.delete({
       where: { id },
       select: { username: true, email: true, role: true },
     });
