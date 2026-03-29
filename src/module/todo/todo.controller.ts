@@ -10,13 +10,13 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
-import { TodoService } from './todo.service';
-import { CreateTodoDto } from './dto/create-todo.dto';
-import { UpdateTodoDto } from './dto/update-todo.dto';
+import { TodoService } from './todo.service.js';
+import { CreateTodoDto } from './dto/create-todo.dto.js';
+import { UpdateTodoDto } from './dto/update-todo.dto.js';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
-import { Status } from '@prisma/client';
+import { Status } from '../../prisma/generated/client.js';
 
 type RequestWithUser = Request & { user: { id: string } };
 

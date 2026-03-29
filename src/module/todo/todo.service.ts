@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateTodoDto } from './dto/create-todo.dto';
-import { UpdateTodoDto } from './dto/update-todo.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateTodoDto } from './dto/create-todo.dto.js';
+import { UpdateTodoDto } from './dto/update-todo.dto.js';
+import { PrismaService } from 'src/prisma/prisma.service.js';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
-import { TodoUserTag } from './inteface/TodoInterface';
-import { Status } from '@prisma/client';
+import { TodoUserTag } from './inteface/TodoInterface.js';
+import { Status } from '../../prisma/generated/client.js';
 import KeyvRedis, { RedisClientType } from '@keyv/redis';
 import { KeyvStoreAdapter } from 'keyv';
 
@@ -107,7 +107,7 @@ export class TodoService {
     return formattedTodo;
   }
 
-  genKeyTodoCache(
+  private genKeyTodoCache(
     userId: number,
     tags: string[] | undefined,
     status: Status | undefined,

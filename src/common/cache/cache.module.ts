@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Env } from 'config/dev.config';
+import type { Env } from '../../config/dev.config.js';
 
 @Module({
   imports: [

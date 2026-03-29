@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from './prisma/prisma.module';
-import { UserModule } from './module/user/user.module';
-import { TodoModule } from './module/todo/todo.module';
-import { AuthModule } from './module/auth/auth.module';
+import { PrismaModule } from './prisma/prisma.module.js';
+import { UserModule } from './module/user/user.module.js';
+import { TodoModule } from './module/todo/todo.module.js';
+import { AuthModule } from './module/auth/auth.module.js';
 import { ConfigModule } from '@nestjs/config';
-import { configSchema } from '../config/dev.config';
-import { CacheModule } from './common/cache/cache.module';
+import { configSchema } from './config/dev.config.js';
+import { CacheModule } from './common/cache/cache.module.js';
 
 @Module({
   imports: [
@@ -16,6 +16,7 @@ import { CacheModule } from './common/cache/cache.module';
     CacheModule,
     ConfigModule.forRoot({
       isGlobal: true,
+      expandVariables: true,
       validate: (config) => {
         const result = configSchema.safeParse(config);
         if (!result.success) {

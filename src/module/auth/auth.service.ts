@@ -4,16 +4,16 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UserService } from '../user/user.service';
+import { UserService } from '../user/user.service.js';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { SignInDto } from './dto/signIn.dto';
-import { SignUpDto } from './dto/signUp.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import type { Payload } from './interfaces/auth.inteface';
-import { User } from '../user/interfaces/users.interface';
+import { SignInDto } from './dto/signIn.dto.js';
+import { SignUpDto } from './dto/signUp.dto.js';
+import { PrismaService } from 'src/prisma/prisma.service.js';
+import type { Payload } from './interfaces/auth.inteface.js';
+import { User } from '../user/interfaces/users.interface.js';
 import { ConfigService } from '@nestjs/config';
-import type { Env } from 'config/dev.config';
+import type { Env } from '../../config/dev.config.js';
 
 @Injectable()
 export class AuthService {
@@ -119,10 +119,13 @@ export class AuthService {
       const payload: Payload = await this.jwtService.verify(refreshToken, {
         secret: jwtRefreshKey,
       });
+
+      if (!payload)
+        throw new UnauthorizedException('Invalid or expired refresh token');
+
       const date = Math.floor(Date.now() / 1000);
-      if (payload.exp < date) {
-        throw new Error('Date is expired');
-      }
+
+      if (payload.exp < date) throw new Error('Date is expired');
 
       await this.prisma.refreshToken.deleteMany({
         where: { userId: payload.sub },

@@ -1,9 +1,9 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateUserDto } from './dto/create-user.dto.js';
+import { UpdateUserDto } from './dto/update-user.dto.js';
+import { PrismaService } from 'src/prisma/prisma.service.js';
 import * as bcrypt from 'bcrypt';
-import { User } from './interfaces/users.interface';
+import { User } from './interfaces/users.interface.js';
 
 @Injectable()
 export class UserService {

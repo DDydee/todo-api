@@ -8,19 +8,15 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { SignInDto } from './dto/signIn.dto';
-import { SignUpDto } from './dto/signUp.dto';
+import { AuthService } from './auth.service.js';
+import { SignInDto } from './dto/signIn.dto.js';
+import { SignUpDto } from './dto/signUp.dto.js';
 import type { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
-import type {
-  CookieRequest,
-  Payload,
-  AuthResponse,
-} from './interfaces/auth.inteface';
+import type { CookieRequest, Payload } from './interfaces/auth.inteface.js';
 import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../../config/dev.config';
-import { Public } from './decorators/token.decorators';
+import type { Env } from '../../config/dev.config.js';
+import { Public } from './decorators/token.decorators.js';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
 @Controller('auth')
@@ -38,11 +34,9 @@ export class AuthController {
     @Body() signInDto: SignInDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    return await this.handleAuth<SignInDto>(
-      (dto: SignInDto) => this.authService.signIn(dto),
-      signInDto,
-      res
-    );
+    const resultAuth = await this.authService.signIn(signInDto);
+    this.setCookie(res, resultAuth.refresh_token);
+    return resultAuth;
   }
 
   @Post('sign-up')
@@ -51,11 +45,9 @@ export class AuthController {
     @Body() signUpDto: SignUpDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    return await this.handleAuth<SignUpDto>(
-      (dto: SignUpDto) => this.authService.signUp(dto),
-      signUpDto,
-      res
-    );
+    const resultAuth = await this.authService.signUp(signUpDto);
+    this.setCookie(res, resultAuth.refresh_token);
+    return resultAuth;
   }
 
   @Delete('sign-out')
@@ -68,17 +60,17 @@ export class AuthController {
 
     const payload: Payload = this.jwtService.decode(accessToken);
     const refreshToken = req.cookies?.['refresh_token'];
-    if (!refreshToken) throw new UnauthorizedException('REFRESH_INVALID');
+    if (!refreshToken) throw new UnauthorizedException('INVALID_REFRESH_TOKEN');
 
     await this.authService.signOut(refreshToken);
     const ttl = payload.exp * 1000 - Date.now();
     await this.cacheManager.set(`${accessToken}`, true, ttl);
 
     res.clearCookie('refresh_token');
-    res.status(200).json({
+    return {
       message: 'success',
       action: 'clear_tokens',
-    });
+    };
   }
 
   @Post('refresh')
@@ -99,31 +91,19 @@ export class AuthController {
       }
       throw new UnauthorizedException('REFRESH_INVALID');
     }
-
-    return await this.handleAuth(
-      (payload: Payload, refToken: string) =>
-        this.authService.refreshToken(payload, refToken),
-      [payload, refreshToken],
-      res
+    const resultAuth = await this.authService.refreshToken(
+      payload,
+      refreshToken
     );
+    this.setCookie(res, resultAuth.refresh_token);
+    return resultAuth;
   }
 
-  private async handleAuth<T extends SignUpDto | SignInDto>(
-    fn: (dto: T | Payload, token?: string) => Promise<AuthResponse>,
-    userDto: T | [Payload, string],
-    res: Response
-  ) {
-    const { refresh_token, access_token, user } = Array.isArray(userDto)
-      ? await fn(...userDto)
-      : await fn(userDto);
-    res.cookie('refresh_token', refresh_token, {
+  private setCookie(res: Response, refToken: string) {
+    res.cookie('refresh_token', refToken, {
       httpOnly: true,
       secure: false,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    return {
-      access_token,
-      user,
-    };
   }
 }

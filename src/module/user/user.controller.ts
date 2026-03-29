@@ -8,12 +8,12 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
-import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UserService } from './user.service.js';
+import { CreateUserDto } from './dto/create-user.dto.js';
+import { UpdateUserDto } from './dto/update-user.dto.js';
 import { ApiTags } from '@nestjs/swagger';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorators';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorators.js';
 import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('user')

@@ -1,4 +1,4 @@
-import { Status } from '@prisma/client';
+import { Status } from '../../../prisma/generated/client.js';
 import {
   IsDateString,
   IsEnum,
@@ -18,7 +18,7 @@ export class CreateTodoDto {
   @IsNotEmpty({ message: 'Title is empty' })
   @IsString()
   @MinLength(3)
-  title: string;
+  title!: string;
 
   @ApiPropertyOptional({
     description: 'Detailed description of the task.',

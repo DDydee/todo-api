@@ -13,7 +13,7 @@ export class CreateUserDto {
     message:
       'Username is too short. Minimal length is $constraint1 characters, but actual is $value',
   })
-  username: string;
+  username!: string;
 
   @ApiProperty({
     description: 'Valid email address of the user.',
@@ -21,7 +21,7 @@ export class CreateUserDto {
   })
   @IsEmail()
   @IsNotEmpty({ message: 'Email is empty' })
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'Password for the account. Minimum 8 characters.',
@@ -31,5 +31,5 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(8, { message: 'Password min length 8 characters' })
-  password: string;
+  password!: string;
 }
