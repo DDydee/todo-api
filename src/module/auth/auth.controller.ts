@@ -36,7 +36,7 @@ export class AuthController {
   ) {
     const resultAuth = await this.authService.signIn(signInDto);
     this.setCookie(res, resultAuth.refresh_token);
-    return resultAuth;
+    return { access_token: resultAuth.access_token, user: resultAuth.user };
   }
 
   @Post('sign-up')
@@ -47,7 +47,7 @@ export class AuthController {
   ) {
     const resultAuth = await this.authService.signUp(signUpDto);
     this.setCookie(res, resultAuth.refresh_token);
-    return resultAuth;
+    return { access_token: resultAuth.access_token, user: resultAuth.user };
   }
 
   @Delete('sign-out')
@@ -55,16 +55,14 @@ export class AuthController {
     @Req() req: CookieRequest,
     @Res({ passthrough: true }) res: Response
   ) {
-    const accessToken = req.headers.authorization?.split(' ')[1];
-    if (!accessToken) throw new UnauthorizedException('Token is empty');
-
+    const accessToken = req.headers.authorization!.split(' ')[1];
     const payload: Payload = this.jwtService.decode(accessToken);
     const refreshToken = req.cookies?.['refresh_token'];
     if (!refreshToken) throw new UnauthorizedException('INVALID_REFRESH_TOKEN');
 
     await this.authService.signOut(refreshToken);
     const ttl = payload.exp * 1000 - Date.now();
-    await this.cacheManager.set(`${accessToken}`, true, ttl);
+    await this.cacheManager.set(accessToken, true, ttl);
 
     res.clearCookie('refresh_token');
     return {

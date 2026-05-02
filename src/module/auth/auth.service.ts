@@ -80,20 +80,17 @@ export class AuthService {
   async signIn(signInDto: SignInDto) {
     const user = await this.userService.findUserByEmail(signInDto.email);
 
-    if (!user) {
-      throw new UnauthorizedException('User does not exist');
-    }
+    if (!user) throw new UnauthorizedException('User does not exist');
 
     const password_hash = await bcrypt.compare(
       signInDto.password,
       user.password_hash
     );
 
-    if (!password_hash) {
-      throw new UnauthorizedException("Password don't match");
-    }
+    if (!password_hash) throw new UnauthorizedException("Password don't match");
 
-    return await this.generateToken(user);
+    const result = await this.generateToken(user);
+    return result;
   }
 
   async signUp(signUpDto: SignUpDto) {
@@ -109,20 +106,13 @@ export class AuthService {
     } catch {
       throw new InternalServerErrorException('Failed to create user');
     }
-    return await this.generateToken(user);
+    const result = await this.generateToken(user);
+    return result;
   }
 
   async signOut(refreshToken: string) {
-    const jwtRefreshKey = this.configService.get<string>('JWT_REFRESH_KEY');
-
     try {
-      const payload: Payload = await this.jwtService.verify(refreshToken, {
-        secret: jwtRefreshKey,
-      });
-
-      if (!payload)
-        throw new UnauthorizedException('Invalid or expired refresh token');
-
+      const payload: Payload = await this.jwtService.decode(refreshToken);
       const date = Math.floor(Date.now() / 1000);
 
       if (payload.exp < date) throw new Error('Date is expired');
